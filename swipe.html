@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Swipe</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --green: #10b981;
+      --red: #ef4444;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --text-muted: #64748b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      height: 100vh;
+      margin: 0;
+      overflow: hidden;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .header {
+      width: 100%;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 22px;
+      letter-spacing: -0.5px;
+      color: var(--primary);
+      border-bottom: 1px solid var(--border);
+      background: #ffffff;
+      z-index: 10;
+    }
+
+    .deck {
+      position: relative;
+      width: 90%;
+      max-width: 360px;
+      height: calc(100vh - 200px);
+      max-height: 540px;
+    }
+
+    .card {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background: var(--card-bg);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+      will-change: transform;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .card img {
+      width: 100%;
+      height: 70%;
+      object-fit: cover;
+      pointer-events: none;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .card-info {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      flex: 1;
+      background: #ffffff;
+    }
+
+    .title {
+      font-size: 22px;
+      font-weight: 800;
+      margin-bottom: 4px;
+      color: var(--text);
+    }
+
+    .desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    #roast-banner {
+      min-height: 24px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--red);
+      text-align: center;
+      padding: 0 10px;
+      letter-spacing: 0.5px;
+      z-index: 5;
+    }
+
+    .controls-area {
+      position: relative;
+      width: 100%;
+      max-width: 360px;
+      height: 90px;
+      display: flex;
+      align-items: center;
+      justify-content: space-evenly;
+      padding-bottom: 15px;
+    }
+
+    .btn-circle {
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      font-size: 20px;
+      font-weight: 900;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.1s ease;
+      z-index: 999;
+      touch-action: manipulation;
+    }
+
+    .btn-circle:active {
+      background: #f1f5f9;
+    }
+
+    .btn-pass { 
+      color: var(--red); 
+    }
+    
+    .btn-claim { 
+      color: var(--green); 
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">tourder</div>
+
+  <div class="deck" id="deck"></div>
+
+  <div id="roast-banner"></div>
+
+  <div class="controls-area" id="controls">
+    <button class="btn-circle btn-pass" id="btn-left">✕</button>
+    <button class="btn-circle btn-claim" id="btn-right">♥</button>
+  </div>
+
+  <script>
+    const countries = [
+      {
+        id: "paris",
+        title: "paris, france",
+        desc: "city of lights and $18 croissants.",
+        img: "france.webp"
+      },
+      {
+        id: "tokyo",
+        title: "tokyo, japan",
+        desc: "anime edits and crowded crosswalks.",
+        img: "japan.webp"
+      },
+      {
+        id: "bir-tawil",
+        title: "bir tawil",
+        desc: "2,060 km² unclaimed desert. zero taxes.",
+        img: "birtawil.avif"
+      }
+    ];
+
+    const tokyoRoasts = [
+      "why would you?",
+      "blud thought he was fast enough",
+      "nice try lol",
+      "not happening bro",
+      "button said nope",
+      "zero chance fr",
+      "stop trying to match tokyo",
+      "bro think he slick",
+      "missed again lol",
+      "too slow, speed up"
+    ];
+
+    const birTawilDislikeRoasts = [
+      "you cannot dislike bir tawil bro",
+      "rejection isn't an option here",
+      "bir tawil has suffered enough.",
+      "nice try, but you're staying",
+      "dislike button broken for a reason"
+    ];
+
+    let currentIndex = 0;
+    let isTokyoCard = false;
+    let isTeleporting = false;
+    let lastRoast = "";
+
+    const deck = document.getElementById('deck');
+    const roastBanner = document.getElementById('roast-banner');
+    const btnLeft = document.getElementById('btn-left');
+    const btnRight = document.getElementById('btn-right');
+
+    function getRandomRoast(roastArray) {
+      if (roastArray.length <= 1) return roastArray[0] || "";
+      let selected;
+      do {
+        selected = roastArray[Math.floor(Math.random() * roastArray.length)];
+      } while (selected === lastRoast);
+      lastRoast = selected;
+      return selected;
+    }
+
+    function renderCard() {
+      deck.innerHTML = '';
+      roastBanner.innerText = '';
+      lastRoast = "";
+      const data = countries[currentIndex];
+
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.id = 'current-card';
+      card.innerHTML = `
+        <img src="${data.img}">
+        <div class="card-info">
+          <div class="title">${data.title}</div>
+          <div class="desc">${data.desc}</div>
+        </div>
+      `;
+      deck.appendChild(card);
+
+      resetButtons();
+
+      if (data.id === 'paris') {
+        isTokyoCard = false;
+        btnLeft.innerText = '✕';
+        btnRight.innerText = '✕';
+        btnRight.style.color = 'var(--red)';
+        
+        btnLeft.onclick = () => nextCard();
+        btnRight.onclick = () => nextCard();
+      } 
+      else if (data.id === 'tokyo') {
+        isTokyoCard = true;
+        btnLeft.innerText = '✕';
+        btnRight.innerText = '♥';
+        btnRight.style.color = 'var(--green)';
+
+        btnLeft.onclick = () => {
+          isTokyoCard = false;
+          nextCard();
+        };
+
+        btnRight.addEventListener('touchstart', dodge, { passive: false });
+        btnRight.addEventListener('mousedown', dodge);
+        btnRight.onclick = (e) => e.preventDefault();
+      } 
+      else if (data.id === 'bir-tawil') {
+        isTokyoCard = false;
+        btnLeft.innerText = '✕';
+        btnRight.innerText = '♥';
+        btnRight.style.color = 'var(--green)';
+
+        btnRight.removeEventListener('touchstart', dodge);
+        btnRight.removeEventListener('mousedown', dodge);
+
+        btnLeft.onclick = () => {
+          roastBanner.innerText = getRandomRoast(birTawilDislikeRoasts);
+        };
+
+        btnRight.onclick = () => {
+          card.style.transform = 'translateX(500px) rotate(20deg)';
+          card.style.opacity = 0;
+          setTimeout(() => location.href = 'profile.html', 300);
+        };
+      }
+    }
+
+    function resetButtons() {
+      btnRight.style.position = 'static';
+      isTeleporting = false;
+    }
+
+    document.addEventListener('mousemove', (e) => {
+      if (!isTokyoCard || isTeleporting) return;
+
+      const rect = btnRight.getBoundingClientRect();
+      const btnX = rect.left + rect.width / 2;
+      const btnY = rect.top + rect.height / 2;
+
+      const dist = Math.hypot(e.clientX - btnX, e.clientY - btnY);
+
+      if (dist < 100) {
+        teleportButton();
+      }
+    });
+
+    function dodge(e) {
+      if (!isTokyoCard || isTeleporting) return;
+      if (e) e.preventDefault();
+      teleportButton();
+    }
+
+    function teleportButton() {
+      isTeleporting = true;
+      btnRight.style.position = 'fixed';
+
+      roastBanner.innerText = getRandomRoast(tokyoRoasts);
+      
+      const btnSize = 58;
+      const margin = 20;
+
+      const minX = margin;
+      const maxX = window.innerWidth - btnSize - margin;
+      const minY = margin;
+      const maxY = window.innerHeight - btnSize - margin;
+
+      const msgRect = roastBanner.getBoundingClientRect();
+      const msgPadding = 15;
+      const safeMsgBox = {
+        left: msgRect.left - msgPadding,
+        right: msgRect.right + msgPadding,
+        top: msgRect.top - msgPadding,
+        bottom: msgRect.bottom + msgPadding
+      };
+
+      let newX, newY, overlapsMsg;
+      let attempts = 0;
+
+      do {
+        newX = Math.random() * (maxX - minX) + minX;
+        newY = Math.random() * (maxY - minY) + minY;
+
+        const btnBox = {
+          left: newX,
+          right: newX + btnSize,
+          top: newY,
+          bottom: newY + btnSize
+        };
+
+        overlapsMsg = !(
+          btnBox.right < safeMsgBox.left ||
+          btnBox.left > safeMsgBox.right ||
+          btnBox.bottom < safeMsgBox.top ||
+          btnBox.top > safeMsgBox.bottom
+        );
+
+        attempts++;
+      } while (overlapsMsg && attempts < 100);
+
+      btnRight.style.left = newX + 'px';
+      btnRight.style.top = newY + 'px';
+
+      setTimeout(() => {
+        isTeleporting = false;
+      }, 150);
+    }
+
+    function nextCard() {
+      const card = document.getElementById('current-card');
+      card.style.transform = 'translateX(-500px) rotate(-20deg)';
+      card.style.opacity = 0;
+
+      setTimeout(() => {
+        currentIndex++;
+        renderCard();
+      }, 250);
+    }
+
+    renderCard();
+  </script>
+</body>
+</html>

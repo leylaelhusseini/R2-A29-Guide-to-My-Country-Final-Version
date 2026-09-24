@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat with Bir Tawil</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --green: #10b981;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      height: 100vh;
+      width: 100vw;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .chat-wrapper {
+      width: 100%;
+      height: 100%;
+      background: var(--card-bg);
+      display: flex;
+      flex-direction: column;
+    }
+    .chat-header {
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(8px);
+      z-index: 10;
+    }
+    .profile-link {
+      display: flex;
+      align-items: center;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .avatar-img {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--border);
+      margin-right: 16px;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    .profile-link:hover .avatar-img {
+      transform: scale(1.05);
+      border-color: var(--primary);
+    }
+    .user-info .name {
+      font-weight: 800;
+      font-size: 18px;
+      color: var(--text);
+      transition: color 0.2s ease;
+      text-transform: lowercase;
+    }
+    .profile-link:hover .name {
+      color: var(--primary);
+    }
+    .user-info .status {
+      font-size: 13px;
+      color: var(--green);
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      text-transform: lowercase;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--green);
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .chat-box {
+      flex: 1;
+      padding: 32px;
+      padding-bottom: 24px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      background: #fafafa;
+      scroll-behavior: smooth;
+    }
+    .msg {
+      max-width: 65%;
+      padding: 14px 18px;
+      border-radius: 18px;
+      font-size: 15px;
+      line-height: 1.4;
+      animation: fadeIn 0.2s ease-out forwards;
+      text-transform: lowercase;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .msg.bot {
+      background: #ffffff;
+      color: var(--text);
+      align-self: flex-start;
+      border-bottom-left-radius: 4px;
+      border: 1px solid var(--border);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    }
+    .msg.user {
+      background: var(--primary);
+      color: #ffffff;
+      align-self: flex-end;
+      border-bottom-right-radius: 4px;
+    }
+    .typing-indicator {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      padding: 12px 18px;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      border-bottom-left-radius: 4px;
+      align-self: flex-start;
+      width: fit-content;
+    }
+    .dot {
+      width: 6px;
+      height: 6px;
+      background: var(--text-muted);
+      border-radius: 50%;
+      animation: bounce 1.4s infinite ease-in-out both;
+    }
+    .dot:nth-child(1) { animation-delay: -0.32s; }
+    .dot:nth-child(2) { animation-delay: -0.16s; }
+    @keyframes bounce {
+      0%, 80%, 100% { transform: scale(0); }
+      40% { transform: scale(1); }
+    }
+    .options-container {
+      padding: 20px 32px;
+      background: var(--card-bg);
+      border-top: 1px solid var(--border);
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 10px;
+      max-width: 1000px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    .option-btn {
+      background: #f8fafc;
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 12px 18px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 500;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      text-transform: lowercase;
+    }
+    .option-btn:hover {
+      background: var(--primary);
+      color: #ffffff;
+      border-color: var(--primary);
+      transform: translateY(-1px);
+    }
+    @media (max-width: 768px) {
+      .chat-header { padding: 12px 16px; }
+      .chat-box { padding: 16px; }
+      .options-container {
+        padding: 16px;
+        grid-template-columns: 1fr;
+      }
+      .msg { max-width: 85%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-wrapper">
+    <div class="chat-header">
+      <a href="profile.html" class="profile-link" title="View Profile">
+        <img class="avatar-img" id="avatarImg" src="birtawilpfp.jpeg" alt="Bir Tawil Profile">
+        <div class="user-info">
+          <div class="name" id="mainTitle">bir tawil</div>
+          <div class="status" id="pageStatus"><span class="status-dot"></span> active now</div>
+        </div>
+      </a>
+    </div>
+    <div class="chat-box" id="chatBox"></div>
+    <div class="options-container" id="optionsBox"></div>
+  </div>
+
+  <script>
+const chatBox=document.getElementById("chatBox");
+const optionsBox=document.getElementById("optionsBox");
+
+const scenes={
+start:{
+bot:["oh hey.","didn't expect anyone to text me this late, not going to lie."],
+options:[
+["why not?","why"],
+["couldn't sleep either.","sleep"]
+]},
+why:{
+bot:["have you seen where i live?","i'm not exactly in the middle of a social district."],
+options:[
+["no, where?","where"],
+["wait, are you actually a place?","place"]
+]},
+sleep:{
+bot:["same. except i have a pretty serious excuse. i'm a desert.","which is probably the most embarrassing sentence i've ever said."],
+options:[
+["you're a desert?","place"],
+["okay, that's actually funny.","place"]
+]},
+where:{
+bot:["bir tawil. northeast africa, between egypt and sudan.","about 2,060 square kilometres of desert. dry, remote, zero infrastructure. not exactly a five-minute walk to the nearest café."],
+options:[
+["wait, you're actually a place?","place"],
+["why is a desert texting me?","person"]
+]},
+place:{
+bot:["yes. i'm an actual piece of land.","and apparently that's enough to give me one of the weirdest political histories on earth."],
+options:[
+["okay, now i'm listening.","begin"],
+["how does a piece of land even have a political history?","begin"]
+]},
+person:{
+bot:["because if i talked like a textbook, you'd leave instantly.","plus i spent a century listening to people debate my borders. i'm allowed to have a personality."],
+options:[
+["fair.","begin"],
+["okay, tell me what happened.","begin"]
+]},
+begin:{
+bot:["first thing you should know: i wasn't just some blank space nobody cared about.","people used this part of the eastern desert long before modern borders existed.","then britain drew a line, changed it three years later, and set off a domino effect."],
+options:[
+["wait, people lived there before the borders?","before"],
+["how did one line cause all that?","1899"]
+]},
+before:{
+bot:["yeah, local communities like the ababda and other beja groups used the land for grazing and wells.","so calling me 'nobody's land' lowkey erases all of that.","the map drama came later."],
+options:[
+["okay, what happened with the maps?","1899"],
+["what does bir tawil even mean?","name"]
+]},
+name:{
+bot:["it translates to 'deep well.'","kind of ironic given that people only talk about my map technicalities now, not water.","anyway, 1899."],
+options:[
+["let's hear the map story.","1899"]
+]},
+"1899":{
+bot:["in 1899, britain set the border along the 22nd parallel.","under that map, i was on the sudan side, and the hala'ib triangle up on the red sea was on egypt's side."],
+options:[
+["makes sense so far.","1902"],
+["and then they messed it up?","1902"]
+]},
+"1902":{
+bot:["yup. three years later, in 1902, they drew an 'administrative' border instead.","suddenly i was flipped to the egyptian side, and hala'ib was assigned to sudan."],
+options:[
+["why would they switch it?","admin"],
+["so you literally got swapped on paper?","switch"]
+]},
+admin:{
+bot:["they claimed it was to accommodate tribal movements on the ground.","which sounded reasonable until both countries became independent decades later and picked opposite maps."],
+options:[
+["ah, now i see the conflict.","flip"],
+["what happened after independence?","independence"]
+]},
+switch:{
+bot:["pretty much. just total map chaos.","and because of that single change, bir tawil and hala'ib were tied to opposite sides on each map."],
+options:[
+["which map does egypt use?","positions"],
+["which map does sudan use?","positions"]
+]},
+flip:{
+bot:["look at how the logic plays out:","if egypt claims the 1899 border, they get hala'ib, but i go to sudan. if sudan claims the 1902 border, they get hala'ib, but i go to egypt."],
+options:[
+["so both want hala'ib, not you.","positions"],
+["and nobody claims you?","positions"]
+]},
+positions:{
+bot:["exactly. hala'ib is valuable red sea coast. i'm inland desert.","egypt holds the 1899 view, sudan holds the 1902 view.","to claim me, either country would have to give up their legal argument for hala'ib."],
+options:[
+["so claiming you ruins their actual goal.","logic"],
+["that's why you're 'unclaimed.'","reputation"]
+]},
+logic:{
+bot:["bingo. it's not that i'm toxic, it's just pure strategy.","neither country wants to compromise their claim on hala'ib just to gain 2,000 square kilometers of sand.","honestly, even teacher hazar couldn't break down a geopolitical standoff smoother than that."],
+options:[
+["wait, who's teacher hazar?","hazarMention"],
+["so that's the whole reason?","current"]
+]},
+hazarMention:{
+bot:["oh, just the literal goat. guy has legendary authority, total main character energy.","if anyone could solve a century-old border dispute with pure aura, it's him."],
+options:[
+["fair enough. back to the story.","current"],
+["what about the flag guy?","jeremiahIntro"]
+]},
+reputation:{
+bot:["yeah, the internet saw 'unclaimed land' and ran with it.","it sounds way cooler than 'territory left unasserted due to conflicting legal claims over a coastal triangle.'"],
+options:[
+["what actually happened next?","independence"]
+]},
+independence:{
+bot:["sudan gained independence in 1956, and the overlapping border claims stayed stuck in place.","hala'ib remained the main focus, and i remained the weird byproduct."],
+options:[
+["and then internet guys showed up?","internet"],
+["so what's the actual legal status now?","legal"]
+]},
+current:{
+bot:["so officially, i'm classified as a disputed or unclaimed territory.","though fanso would probably try to claim it anyway just to start an unprovoked argument."],
+options:[
+["wait, who is fanso?","fansoMention"],
+["did people actually try to claim you?","jeremiahIntro"]
+]},
+fansoMention:{
+bot:["fatima. absolute chaotic energy.","we love her, but she's completely lost in her own wattpad universe right now because she is hopelessly in love with sushi expert.","like it's a full corporate romance novel, sushi expert is giving main character ceo and fanso is literally playing the y/n role in real life."],
+options:[
+["wait, a ceo and y/n dynamic?","fansoRomance"],
+["sounds accurate. what about the flag guy?","jeremiahIntro"]
+]},
+fansoRomance:{
+bot:["literally. she walks around acting like she's about to bump into sushi expert in an elevator and drop all her files.","if sushi expert blinks in her direction, she spends the next three business days analyzing the hidden message."],
+options:[
+["honestly iconic. back to the desert story.","jeremiahIntro"],
+["tell me about teacher hazar","hazarMention"]
+]},
+legal:{
+bot:["people love using terms like 'terra nullius,' but real-world sovereignty isn't a video game cheat code.","you can't just drop a tent and call yourself a head of state."],
+options:[
+["tell that to the guys who tried.","jeremiahIntro"]
+]},
+internet:{
+bot:["once map nerds realized i existed, it was over.","every few months someone decides they're going to start a nation here."],
+options:[
+["who was the most famous one?","jeremiahIntro"]
+]},
+jeremiahIntro:{
+bot:["in 2014, this guy jeremiah heaton actually flew out here with a physical flag.","he'd promised his seven-year-old daughter emily that she could be a real princess."],
+options:[
+["wait, for real?","trip"],
+["that's wild.","trip"]
+]},
+trip:{
+bot:["he literally traveled all the way into the desert on her birthday, june 16, 2014.","planted a blue flag with four stars and a crown, and named it the 'kingdom of north sudan.'"],
+options:[
+["did it actually work?","recognition"],
+["what a birthday present.","recognition"]
+]},
+recognition:{
+bot:["naturally, zero foreign governments or the un recognized it as a real country.","you can't just claim land by planting a piece of cloth, no matter how wholesome the reason was."],
+options:[
+["did he try to do anything else with it?","project"]
+]},
+project:{
+bot:["he actually wanted to turn it into an agricultural science hub for water conservation.","which, credit where it's due, was a noble effort."],
+options:[
+["could anyone actually pull that off?","mohamedMention"],
+["did the project end up happening?","plans"]
+]},
+mohamedMention:{
+bot:["honestly? if mohamed was in charge, he would've built a futuristic metropolis here already. zero misses from him, ever.","though rumors say the reason nobody messes with him is because when he lifts his hands, he has a laser tag under his armpits.","like whenever he raises his arms, he can literally use it to freeze people or straight up kill them on the spot."],
+options:[
+["wait, armpit laser tags?!","mohamedLasers"],
+["did jeremiah's project actually happen?","plans"]
+]},
+mohamedLasers:{
+bot:["i swear, that's the word on the street! arms up, laser engaged, target frozen or vaporized. pure lethal armpit technology."],
+options:[
+["fair enough, never making mohamed raise his hands. what about the kingdom?","plans"],
+["so what happened to jeremiah's kingdom?","plans"]
+]},
+plans:{
+bot:["the publicity died down and the legal status never changed.","i'm still just a desert, but now with a bizarre internet footprint."],
+options:[
+["how do you feel about the whole thing?","feelings"]
+]},
+feelings:{
+bot:["i mean, it's hilarious. jeremiah was definitely insane for doing all that, but i respect the commitment.","most people wouldn't cross a desert just to keep a random promise to their kid."],
+options:[
+["and now you're an internet legend.","after"]
+]},
+after:{
+bot:["pretty much. i'm a trivia answer, a border anomaly, and a playground for micronation enthusiasts."],
+options:[
+["honestly, a pretty solid lore.","ending"]
+]},
+ending:{
+bot:["not bad for 2,000 square kilometers of sand nobody wanted to put on their main legal claim.","anyway, go to sleep. it's way too late to be analyzing african border history."],
+options:[
+["fair enough. goodnight.","end2"]
+]},
+end2:{
+bot:["goodnight."],
+options:[]
+}
+};
+
+window.onload=function(){
+  showScene("start");
+};
+
+function scrollToBottom(){
+  chatBox.scrollTop=chatBox.scrollHeight;
+}
+
+function appendMessage(text,sender){
+  const msg=document.createElement("div");
+  msg.className="msg "+sender;
+  msg.textContent=text;
+  chatBox.appendChild(msg);
+  scrollToBottom();
+}
+
+function showTypingIndicator(){
+  const indicator=document.createElement("div");
+  indicator.className="typing-indicator";
+  indicator.id="typingIndicator";
+  indicator.innerHTML='<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+  chatBox.appendChild(indicator);
+  scrollToBottom();
+}
+
+function removeTypingIndicator(){
+  const indicator=document.getElementById("typingIndicator");
+  if(indicator) indicator.remove();
+}
+
+function showScene(key){
+  const scene=scenes[key];
+  if(!scene) return;
+  
+  scene.bot.forEach(function(line){
+    appendMessage(line,"bot");
+  });
+  
+  renderOptions(scene.options);
+}
+
+function renderOptions(options){
+  optionsBox.innerHTML="";
+  if(!options || options.length===0) return;
+  
+  options.forEach(function(option){
+    const button=document.createElement("button");
+    button.className="option-btn";
+    button.textContent=option[0];
+    button.onclick=function(){
+      choose(option[0],option[1]);
+    };
+    optionsBox.appendChild(button);
+  });
+  scrollToBottom();
+}
+
+function choose(text,next){
+  appendMessage(text,"user");
+  optionsBox.innerHTML="";
+  showTypingIndicator();
+  setTimeout(function(){
+    removeTypingIndicator();
+    showScene(next);
+  }, 520);
+}
+</script>
+</body>
+</html>
